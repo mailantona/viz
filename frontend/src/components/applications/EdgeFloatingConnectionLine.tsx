@@ -5,7 +5,7 @@
  */
 import { memo } from 'react';
 import { getBezierPath, type ConnectionLineComponentProps, type InternalNode } from '@xyflow/react';
-import { getEdgeParams } from '../../scripts/initialElements';
+import { getEdgeParams } from './EdgeInitialElements';
 
 const FloatingConnectionLine = ({
   toX,

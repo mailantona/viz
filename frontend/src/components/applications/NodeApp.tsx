@@ -6,7 +6,7 @@
  */
 
 import { memo } from "react";
-import { Handle, Position, NodeResizer, type Node, type NodeProps } from "@xyflow/react";
+import { Handle, Position, NodeResizer, type NodeProps } from "@xyflow/react";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store/store";
 import { Badge } from "@/components/ui/badge";
@@ -14,19 +14,7 @@ import { Badge } from "@/components/ui/badge";
 /**
  * 1. ТИПИЗАЦИЯ ДАННЫХ НОДЫ
  */
-/**
- * Типизация данных, которые хранятся внутри каждой ноды.
- * Поскольку данные используются в UI (метки, статус, идентификатор)
- * удобнее описать шаблон с обязательными полями.
- */
-export type ApplicationNodeType = Node<{
-    label: string;
-    labelDesc?: string;
-    systemStatus: "КИС" | "ЛИС" | "Спец.ПО";
-    budgetCategory: "А" | "D" | "С" | "N";
-    mainPlatform: string;
-    appId: string;
-}>;
+import type { ApplicationNodeType } from "@/components/applications/nodeTypes"
 
 /**
  * 2. КОНСТАНТЫ СТИЛЕЙ (вынесены для предотвращения пересоздания при рендере)

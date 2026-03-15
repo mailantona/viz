@@ -32,10 +32,12 @@ import {
 import { Button } from "@/components/ui/button"
 import { useStore } from "@/store/store"
 
-import { ApplicationNode, type ApplicationNodeType } from "@/components/applications/NodeApp"
+import { ApplicationNode } from "@/components/applications/NodeApp"
 import FloatingEdge from "@/components/applications/EdgeFloating"
 import FloatingConnectionLine from "@/components/applications/EdgeFloatingConnectionLine"
-import { FilterPanel } from "@/components/applications/FilterPanel"
+import { FilterPanel } from "@/components/applications/NodeFilterPanel"
+
+import type { FlowNode } from "@/components/applications/nodeTypes"
 
 /*
 ────────────────────────
@@ -45,9 +47,7 @@ IMPORT LAYOUT ENGINE
 в отдельный файл
 */
 
-import { layoutGraph } from "@/lib/layoutGraph"
-
-
+import { layoutGraph } from "@/components/applications/nodeLayoutGraph"
 
 /*
 ────────────────────────
@@ -76,7 +76,7 @@ function GraphCanvas() {
   */
   const { nodes: allNodes, edges: allEdges } =
     Route.useLoaderData() as {
-      nodes: ApplicationNodeType[]
+      nodes: FlowNode[]
       edges: Edge[]
     }
 
@@ -111,7 +111,7 @@ function GraphCanvas() {
   /*
   локальный state графа
   */
-  const [nodes, setNodes, onNodesChange] = useNodesState<ApplicationNodeType>([])
+  const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([])
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
 
   //Функция для сохранения нод и линий
@@ -138,34 +138,67 @@ function GraphCanvas() {
   ────────────────────────
   */
 
-  const graph = useMemo(() => {
+const graph = useMemo(() => {
 
-    const filteredNodes = allNodes.filter((node) => {
-      const label = node.data.label?.toLowerCase() ?? ""
-      const matchQuery = !query || label.includes(query.toLowerCase())
-      const matchStatus = !status || node.data.systemStatus === status
-      const matchBudget = !budget || node.data.budgetCategory === budget
-      return matchQuery && matchStatus && matchBudget
-    })
+  /*
+  1. разделяем ноды
+  */
+  const groups = allNodes.filter((n) => n.type === "group")
+  const apps = allNodes.filter((n) => n.type === "application")
 
-    /*
-    set для быстрого поиска
-    */
+  /*
+  2. фильтрация приложений
+  */
+  const filteredApps = apps.filter((node) => {
+    const label = node.data.label?.toLowerCase() ?? ""
+    const matchQuery =
+      !query || label.includes(query.toLowerCase())
+    const matchStatus =
+      !status || node.data.systemStatus === status
+    const matchBudget =
+      !budget || node.data.budgetCategory === budget
+    return matchQuery && matchStatus && matchBudget
+  })
+  /*
+  3. определяем какие группы используются
+  */
+  const usedGroupIds = new Set(
+    filteredApps
+      .map((n) => n.parentId)
+      .filter(Boolean)
+  )
+  /*
+  4. оставляем только группы где есть дети
+  */
+  const filteredGroups = groups.filter((g) =>
+    usedGroupIds.has(g.id)
+  )
 
-    const nodeIds = new Set(filteredNodes.map((n) => n.id))
+  /*
+  5. итоговые ноды
+  */
+  const filteredNodes = [
+    ...filteredGroups,
+    ...filteredApps,
+  ]
 
-    const filteredEdges = allEdges.filter(
-      (e) =>
-        nodeIds.has(e.source) &&
-        nodeIds.has(e.target)
-    )
+  /*
+  6. фильтр edges
+  */
+  const nodeIds = new Set(
+    filteredNodes.map((n) => n.id)
+  )
+  const filteredEdges = allEdges.filter(
+    (e) =>
+      nodeIds.has(e.source) &&
+      nodeIds.has(e.target)
+  )
+  return {
+    nodes: filteredNodes,
+    edges: filteredEdges,
+  }
 
-    return {
-      nodes: filteredNodes,
-      edges: filteredEdges,
-    }
-
-  }, [allNodes, allEdges, query, status, budget])
+}, [allNodes, allEdges, query, status, budget])
 
   /*
   ────────────────────────
