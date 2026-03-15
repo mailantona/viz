@@ -12,6 +12,7 @@ import {
   type Edge,
   type Connection,
   useReactFlow,
+  MarkerType
 } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
 
@@ -45,7 +46,7 @@ function GraphCanvas() {
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([])
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
 
-   // 1. Создаем функцию-хелпер для фитвью
+  // 1. Создаем функцию-хелпер для фитвью
   const performFitView = useCallback(() => {
     // requestAnimationFrame выполнится сразу, как только браузер будет готов к отрисовке
     requestAnimationFrame(() => {
@@ -125,15 +126,18 @@ function GraphCanvas() {
 
   const onConnect = useCallback(
     (params: Connection) =>
-      setEdges((eds) => addEdge(params, eds)),
+      setEdges((eds) =>
+        addEdge({ ...params, type: "floating", markerEnd: { type: MarkerType.ArrowClosed } }, eds)
+      ),
     [setEdges]
-  )
+  );
 
   const colorMode = useMemo(() => {
     return (
       theme === "dark" || theme === "light" ? theme : "system"
     ) as "dark" | "light" | "system"
   }, [theme])
+
   return (
     <div className="h-screen w-screen bg-background text-foreground">
 
