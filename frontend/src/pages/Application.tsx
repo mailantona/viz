@@ -196,8 +196,7 @@ function GraphCanvas() {
 
   const handleAutoLayout = useCallback(async () => {
 
-    const { nodes: layoutedNodes, edges: layoutedEdges } =
-      await layoutGraph(nodes, edges)
+    const { nodes: layoutedNodes, edges: layoutedEdges } = await layoutGraph(nodes, edges)
 
     setNodes(layoutedNodes)
     setEdges(layoutedEdges)
@@ -229,9 +228,7 @@ function GraphCanvas() {
 
   const colorMode = useMemo(() => {
     return (
-      theme === "dark" || theme === "light"
-        ? theme
-        : "system"
+      theme === "dark" || theme === "light" ? theme : "system"
     ) as "dark" | "light" | "system"
   }, [theme])
 
@@ -269,47 +266,13 @@ function GraphCanvas() {
         />
 
         {/* toolbar */}
-
-        <Panel
-          position="top-right"
-          className="flex flex-col gap-2"
-        >
+        <Panel position="top-right" className="flex flex-col gap-2" >
           {/* auto layout */}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleAutoLayout}
-            title="Auto layout"
-          >
-            <LayoutGrid size={18} />
-          </Button>
-
+          <Button variant="outline" size="icon" onClick={handleAutoLayout} title="Auto layout" > <LayoutGrid size={18} /> </Button>
           {/* node resize toggle */}
-          <Button
-            variant={showResizer ? "default" : "outline"}
-            size="icon"
-            onClick={toggleResizer}
-          >
-            {showResizer
-              ? <Minimize2 size={18} />
-              : <Maximize2 size={18} />}
-          </Button>
-
-
+          <Button variant={showResizer ? "default" : "outline"} size="icon" onClick={toggleResizer} > {showResizer ? <Minimize2 size={18} /> : <Maximize2 size={18} />} </Button>
           {/* theme */}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() =>
-              setTheme(theme === "dark" ? "light" : "dark")
-            }
-          >
-            {theme === "dark"
-              ? <Sun size={18} />
-              : <Moon size={18} />}
-          </Button>
-
-
+          <Button variant="outline" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} > {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />} </Button>
         </Panel>
 
         <Panel position="top-left" className="flex flex-col gap-4">
