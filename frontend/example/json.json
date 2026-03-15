@@ -1,0 +1,66 @@
+{
+    "nodes": [
+        {
+            "id": "1",
+            "type": "application",
+            "position": {
+                "x": 100,
+                "y": 100
+            },
+            "style": {
+                "width": 300
+            },
+            "data": {
+                "label": "Цифровое дело скважины, учетотказов подземного оборудования",
+                "labelDesc": "Корпоративная система управления данными скважин",
+                "systemStatus": "КИС",
+                "budgetCategory": "N",
+                "mainPlatform": "SAP",
+                "appId": "APP-12956"
+            },
+            "measured": {
+                "width": 300,
+                "height": 144
+            }
+        },
+        {
+            "id": "2",
+            "type": "application",
+            "position": {
+                "x": 500,
+                "y": 500
+            },
+            "style": {
+                "width": 300
+            },
+            "data": {
+                "label": "Цифровое дело скважины, учёт отказов подземного оборудования",
+                "labelDesc": "Локальная система для работы с данными скважин",
+                "systemStatus": "ЛИС",
+                "budgetCategory": "D",
+                "mainPlatform": "SharePoint",
+                "appId": "APP-12956"
+            },
+            "measured": {
+                "width": 300,
+                "height": 144
+            }
+        }
+    ],
+    "edges": [
+        {
+            "id": "e1-2",
+            "source": "1",
+            "target": "2",
+            "type": "floating",
+            "markerEnd": {
+                "type": "arrowclosed"
+            }
+        }
+    ],
+    "viewport": {
+        "x": -31.285714285714278,
+        "y": 5.717142857142846,
+        "zoom": 1.012857142857143
+    }
+}

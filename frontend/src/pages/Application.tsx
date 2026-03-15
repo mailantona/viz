@@ -12,6 +12,7 @@ import {
   type Connection,
   useReactFlow,
 } from "@xyflow/react"
+import "@xyflow/react/dist/style.css"
 
 import { useRouterState, Link } from "@tanstack/react-router"
 import { Route } from "@/routes/applications"
@@ -25,6 +26,7 @@ import {
   Maximize2,
   Minimize2,
   LayoutGrid,
+  Save,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -45,14 +47,13 @@ IMPORT LAYOUT ENGINE
 
 import { layoutGraph } from "@/lib/layoutGraph"
 
-import "@xyflow/react/dist/style.css"
+
 
 /*
 ────────────────────────
 СТАБИЛЬНЫЕ NODE TYPES
 ────────────────────────
-ReactFlow рекомендует
-объявлять их вне компонента
+ReactFlow рекомендует объявлять их вне компонента
 */
 
 const nodeTypes = {
@@ -70,11 +71,9 @@ GRAPH CANVAS
 */
 
 function GraphCanvas() {
-
   /*
   loader из router
   */
-
   const { nodes: allNodes, edges: allEdges } =
     Route.useLoaderData() as {
       nodes: ApplicationNodeType[]
@@ -84,13 +83,11 @@ function GraphCanvas() {
   /*
   search параметры
   */
-
   const { query, status, budget } = Route.useSearch()
 
   /*
   состояние роутера
   */
-
   const isLoading = useRouterState({
     select: (s) => s.isLoading,
   })
@@ -98,32 +95,43 @@ function GraphCanvas() {
   /*
   тема
   */
-
   const { theme, setTheme } = useTheme()
 
   /*
   Zustand store
   */
-
   const showResizer = useStore((s) => s.showResizer)
   const toggleResizer = useStore((s) => s.toggleResizer)
 
   /*
   ReactFlow API
   */
-
-  const { fitView } = useReactFlow()
+  const { fitView, toObject } = useReactFlow()
 
   /*
   локальный state графа
   */
+  const [nodes, setNodes, onNodesChange] = useNodesState<ApplicationNodeType>([])
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
 
-  const [nodes, setNodes, onNodesChange] =
-    useNodesState<ApplicationNodeType>([])
-
-  const [edges, setEdges, onEdgesChange] =
-    useEdgesState<Edge>([])
-
+  //Функция для сохранения нод и линий
+  const handleSave = useCallback(() => {
+    const flow = toObject()
+    const layout = {
+      nodes: flow.nodes.map(n => ({
+        id: n.id,
+        position: n.position,
+        width: n.width ?? n.measured?.width ?? 300,
+        height: n.height ?? n.measured?.height ?? 200
+      })),
+      viewport: flow.viewport
+    }
+    localStorage.setItem(
+      "viz-layout",
+      JSON.stringify(layout)
+    )
+    console.log("graph saved")
+  }, [toObject])
   /*
   ────────────────────────
   FILTER ENGINE
@@ -133,18 +141,10 @@ function GraphCanvas() {
   const graph = useMemo(() => {
 
     const filteredNodes = allNodes.filter((node) => {
-
       const label = node.data.label?.toLowerCase() ?? ""
-
-      const matchQuery =
-        !query || label.includes(query.toLowerCase())
-
-      const matchStatus =
-        !status || node.data.systemStatus === status
-
-      const matchBudget =
-        !budget || node.data.budgetCategory === budget
-
+      const matchQuery = !query || label.includes(query.toLowerCase())
+      const matchStatus = !status || node.data.systemStatus === status
+      const matchBudget = !budget || node.data.budgetCategory === budget
       return matchQuery && matchStatus && matchBudget
     })
 
@@ -266,18 +266,25 @@ function GraphCanvas() {
         />
 
         {/* toolbar */}
-        <Panel position="top-right" className="flex flex-col gap-2" >
+        <Panel position="top-right" className="flex flex-row gap-2" >
           {/* auto layout */}
           <Button variant="outline" size="icon" onClick={handleAutoLayout} title="Auto layout" > <LayoutGrid size={18} /> </Button>
+
+          {/* Сохранить ноды */}
+          <Button variant="outline" size="icon" onClick={handleSave} title="Save graph" >
+            <Save size={18} />
+          </Button>
+
           {/* node resize toggle */}
           <Button variant={showResizer ? "default" : "outline"} size="icon" onClick={toggleResizer} > {showResizer ? <Minimize2 size={18} /> : <Maximize2 size={18} />} </Button>
+
           {/* theme */}
           <Button variant="outline" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} > {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />} </Button>
         </Panel>
 
         <Panel position="top-left" className="flex flex-col gap-4">
           {/* home */}
-          <Button variant="outline" size="icon-lg" asChild className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white">
+          <Button variant="destructive" size="icon-lg" asChild >
             <Link to="/">
               <Home size={18} />
             </Link>
