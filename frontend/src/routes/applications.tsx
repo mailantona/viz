@@ -29,6 +29,7 @@ const fetchFlowData = async (): Promise<{
         id: "group-2",
         type: "group",
         position: { x: 750, y: 200 },
+
         style: {
           width: 500,
           height: 350,

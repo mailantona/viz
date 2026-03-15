@@ -1,3 +1,4 @@
+// Application.tsx
 import { useCallback, useEffect, useMemo } from "react"
 import {
   ReactFlow,
@@ -14,76 +15,100 @@ import {
 } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
 
-import { useRouterState, Link } from "@tanstack/react-router"
+import { Link, useRouterState } from "@tanstack/react-router"
 import { Route } from "@/routes/applications"
-
 import { ThemeProvider, useTheme } from "next-themes"
-import {
-  LoaderCircle,
-  Home,
-  Sun,
-  Moon,
-  Maximize2,
-  Minimize2,
-  LayoutGrid,
-  Save,
-} from "lucide-react"
+import { Home, Sun, Moon, Maximize2, Minimize2, LayoutGrid, Save, LoaderCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { useStore } from "@/store/store"
-
+import { useStore } from "@/store/store" // Используем ваш стор
 import { ApplicationNode } from "@/components/applications/NodeApp"
 import FloatingEdge from "@/components/applications/EdgeFloating"
 import FloatingConnectionLine from "@/components/applications/EdgeFloatingConnectionLine"
 import { FilterPanel } from "@/components/applications/NodeFilterPanel"
-
 import type { FlowNode } from "@/components/applications/nodeTypes"
-
-/*
-────────────────────────
-IMPORT LAYOUT ENGINE
-────────────────────────
-Алгоритм ELK вынесен
-в отдельный файл
-*/
-
 import { layoutGraph } from "@/components/applications/nodeLayoutGraph"
 
-/*
-────────────────────────
-СТАБИЛЬНЫЕ NODE TYPES
-────────────────────────
-ReactFlow рекомендует объявлять их вне компонента
-*/
-
-const nodeTypes = {
-  application: ApplicationNode,
-}
-
-const edgeTypes = {
-  floating: FloatingEdge,
-}
-
-/*
-────────────────────────
-GRAPH CANVAS
-────────────────────────
-*/
+const nodeTypes = { application: ApplicationNode }
+const edgeTypes = { floating: FloatingEdge }
 
 function GraphCanvas() {
-  /*
-  loader из router
-  */
-  const { nodes: allNodes, edges: allEdges } =
-    Route.useLoaderData() as {
-      nodes: FlowNode[]
-      edges: Edge[]
-    }
-
-  /*
-  search параметры
-  */
+  const { nodes: initialNodes, edges: initialEdges } = Route.useLoaderData()
   const { query, status, budget } = Route.useSearch()
+  const { theme, setTheme, resolvedTheme } = useTheme()
+  const { getNodes, getEdges, fitView } = useReactFlow()
+
+  // Достаем состояние из стора
+  const showResizer = useStore((s) => s.showResizer)
+  const toggleResizer = useStore((s) => s.toggleResizer)
+
+  const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([])
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
+
+   // 1. Создаем функцию-хелпер для фитвью
+  const performFitView = useCallback(() => {
+    // requestAnimationFrame выполнится сразу, как только браузер будет готов к отрисовке
+    requestAnimationFrame(() => {
+      fitView({
+        duration: 400,
+        padding: 0.2,
+        includeHiddenNodes: false
+      });
+    });
+  }, [fitView]);
+  // Единая логика фильтрации и синхронизации данных
+  useEffect(() => {
+    const appVisibility = new Map<string, boolean>()
+
+    // 1. Фильтруем приложения
+    const processedNodes = initialNodes.map((node) => {
+      if (node.type === "group") return node
+
+      const data = node.data as any
+      const matchesQuery = !query || data.label?.toLowerCase().includes(query.toLowerCase())
+      const matchesStatus = !status || data.systemStatus === status
+      const matchesBudget = !budget || data.budgetCategory === budget
+
+      const isVisible = matchesQuery && matchesStatus && matchesBudget
+      appVisibility.set(node.id, isVisible)
+
+      return {
+        ...node,
+        hidden: !isVisible,
+        data: { ...node.data } // Прокидываем состояние стора в данные ноды
+      }
+    })
+
+    // 2. Скрываем группы без видимых детей
+    const finalNodes = processedNodes.map((node) => {
+      if (node.type === "group") {
+        const hasVisibleChildren = initialNodes.some(
+          (child) => child.parentId === node.id && appVisibility.get(child.id)
+        )
+        return { ...node, hidden: !hasVisibleChildren, data: { ...node.data } }
+      }
+      return node
+    })
+
+    setNodes(finalNodes)
+    setEdges(initialEdges.filter(e => appVisibility.get(e.source) && appVisibility.get(e.target)))
+    performFitView();
+
+  }, [query, status, budget, initialNodes, initialEdges, setNodes, setEdges])
+
+  const handleAutoLayout = useCallback(async () => {
+    const { nodes: layoutedNodes } = await layoutGraph(getNodes() as FlowNode[], getEdges())
+    setNodes(layoutedNodes)
+    performFitView();
+  }, [getNodes, getEdges, setNodes, fitView])
+
+  const handleSave = useCallback(() => {
+    const allNodes = getNodes();
+    const allEdges = getEdges();
+    // Логика сохранения (например, вывод в консоль или API запрос)
+    console.log("Saving full graph structure:", { nodes: allNodes, edges: allEdges });
+
+  }, [getNodes, getEdges]);
 
   /*
   состояние роутера
@@ -93,161 +118,10 @@ function GraphCanvas() {
   })
 
   /*
-  тема
-  */
-  const { theme, setTheme } = useTheme()
-
-  /*
-  Zustand store
-  */
-  const showResizer = useStore((s) => s.showResizer)
-  const toggleResizer = useStore((s) => s.toggleResizer)
-
-  /*
-  ReactFlow API
-  */
-  const { fitView, toObject } = useReactFlow()
-
-  /*
-  локальный state графа
-  */
-  const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([])
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
-
-  //Функция для сохранения нод и линий
-  const handleSave = useCallback(() => {
-    const flow = toObject()
-    const layout = {
-      nodes: flow.nodes.map(n => ({
-        id: n.id,
-        position: n.position,
-        width: n.width ?? n.measured?.width ?? 300,
-        height: n.height ?? n.measured?.height ?? 200
-      })),
-      viewport: flow.viewport
-    }
-    localStorage.setItem(
-      "viz-layout",
-      JSON.stringify(layout)
-    )
-    console.log("graph saved")
-  }, [toObject])
-  /*
-  ────────────────────────
-  FILTER ENGINE
-  ────────────────────────
-  */
-
-const graph = useMemo(() => {
-
-  /*
-  1. разделяем ноды
-  */
-  const groups = allNodes.filter((n) => n.type === "group")
-  const apps = allNodes.filter((n) => n.type === "application")
-
-  /*
-  2. фильтрация приложений
-  */
-  const filteredApps = apps.filter((node) => {
-    const label = node.data.label?.toLowerCase() ?? ""
-    const matchQuery =
-      !query || label.includes(query.toLowerCase())
-    const matchStatus =
-      !status || node.data.systemStatus === status
-    const matchBudget =
-      !budget || node.data.budgetCategory === budget
-    return matchQuery && matchStatus && matchBudget
-  })
-  /*
-  3. определяем какие группы используются
-  */
-  const usedGroupIds = new Set(
-    filteredApps
-      .map((n) => n.parentId)
-      .filter(Boolean)
-  )
-  /*
-  4. оставляем только группы где есть дети
-  */
-  const filteredGroups = groups.filter((g) =>
-    usedGroupIds.has(g.id)
-  )
-
-  /*
-  5. итоговые ноды
-  */
-  const filteredNodes = [
-    ...filteredGroups,
-    ...filteredApps,
-  ]
-
-  /*
-  6. фильтр edges
-  */
-  const nodeIds = new Set(
-    filteredNodes.map((n) => n.id)
-  )
-  const filteredEdges = allEdges.filter(
-    (e) =>
-      nodeIds.has(e.source) &&
-      nodeIds.has(e.target)
-  )
-  return {
-    nodes: filteredNodes,
-    edges: filteredEdges,
-  }
-
-}, [allNodes, allEdges, query, status, budget])
-
-  /*
-  ────────────────────────
-  GRAPH STATE SYNC
-  ────────────────────────
-  используем позиции из данных
-  */
-
-  useEffect(() => {
-
-    setNodes(graph.nodes)
-    setEdges(graph.edges)
-
-    requestAnimationFrame(() => {
-      fitView({
-        duration: 400,
-        padding: 0.2,
-      })
-    })
-
-  }, [graph, setNodes, setEdges, fitView])
-
-  /*
-  ────────────────────────
-  AUTO LAYOUT BUTTON
-  ────────────────────────
-  */
-
-  const handleAutoLayout = useCallback(async () => {
-
-    const { nodes: layoutedNodes, edges: layoutedEdges } = await layoutGraph(nodes, edges)
-
-    setNodes(layoutedNodes)
-    setEdges(layoutedEdges)
-
-    requestAnimationFrame(() => {
-      fitView({
-        duration: 400,
-        padding: 0.2,
-      })
-    })
-
-  }, [nodes, edges, setNodes, setEdges, fitView])
-
-  /*
-  ────────────────────────
-  CONNECT HANDLER
-  ────────────────────────
-  */
+    ────────────────────────
+    CONNECT HANDLER
+    ────────────────────────
+    */
 
   const onConnect = useCallback(
     (params: Connection) =>
@@ -255,31 +129,19 @@ const graph = useMemo(() => {
     [setEdges]
   )
 
-  /*
-  color mode для ReactFlow
-  */
-
   const colorMode = useMemo(() => {
     return (
       theme === "dark" || theme === "light" ? theme : "system"
     ) as "dark" | "light" | "system"
   }, [theme])
-
-  /*
-  ────────────────────────
-  RENDER
-  ────────────────────────
-  */
-
   return (
-    <div className="h-screen w-screen bg-background">
+    <div className="h-screen w-screen bg-background text-foreground">
 
       {isLoading && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/20 backdrop-blur-[2px] pointer-events-none">
           <LoaderCircle className="h-5 w-5 animate-spin text-primary" />
         </div>
       )}
-
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -287,62 +149,46 @@ const graph = useMemo(() => {
         edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
         connectionLineComponent={FloatingConnectionLine}
         colorMode={colorMode}
+        onConnect={onConnect}
         fitView
       >
+        <Background variant={BackgroundVariant.Dots} gap={20} />
 
-        <Background
-          variant={BackgroundVariant.Dots}
-          gap={20}
-        />
-
-        {/* toolbar */}
-        <Panel position="top-right" className="flex flex-row gap-2" >
-          {/* auto layout */}
-          <Button variant="outline" size="icon" onClick={handleAutoLayout} title="Auto layout" > <LayoutGrid size={18} /> </Button>
-
-          {/* Сохранить ноды */}
-          <Button variant="outline" size="icon" onClick={handleSave} title="Save graph" >
+        <Panel position="top-right" className="flex gap-2">
+          <Button variant="outline" size="icon" onClick={handleAutoLayout} title="Auto Layout">
+            <LayoutGrid size={18} />
+          </Button>
+          {/* ВЕРНУЛИ КНОПКУ СОХРАНИТЬ */}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleSave}
+            title="Save graph"
+          >
             <Save size={18} />
           </Button>
-
-          {/* node resize toggle */}
-          <Button variant={showResizer ? "default" : "outline"} size="icon" onClick={toggleResizer} > {showResizer ? <Minimize2 size={18} /> : <Maximize2 size={18} />} </Button>
-
-          {/* theme */}
-          <Button variant="outline" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} > {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />} </Button>
+          <Button variant={showResizer ? "default" : "outline"} size="icon" onClick={toggleResizer}>
+            {showResizer ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+          </Button>
+          <Button variant="outline" size="icon" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}>
+            {resolvedTheme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+          </Button>
         </Panel>
 
         <Panel position="top-left" className="flex flex-col gap-4">
-          {/* home */}
-          <Button variant="destructive" size="icon-lg" asChild >
-            <Link to="/">
-              <Home size={18} />
-            </Link>
-          </Button>
+          <Button variant="destructive" size="icon" asChild><Link to="/"><Home size={18} /></Link></Button>
           <FilterPanel />
         </Panel>
-
       </ReactFlow>
     </div>
   )
 }
 
-/*
-────────────────────────
-ROOT COMPONENT
-────────────────────────
-*/
-
 export default function Application() {
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-    >
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <ReactFlowProvider>
         <GraphCanvas />
       </ReactFlowProvider>
