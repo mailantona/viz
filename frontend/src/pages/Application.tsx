@@ -19,7 +19,7 @@ import "@xyflow/react/dist/style.css"
 import { Link, useRouterState } from "@tanstack/react-router"
 import { Route } from "@/routes/applications"
 import { ThemeProvider, useTheme } from "next-themes"
-import { Home, Sun, Moon, Maximize2, Minimize2, LayoutGrid, Save, LoaderCircle, LayoutTemplate, Network } from "lucide-react"
+import { Home, Sun, Moon, Maximize2, Minimize2, Save, LoaderCircle, LayoutTemplate, Network } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { useStore } from "@/store/store" // Используем ваш стор
@@ -104,7 +104,14 @@ function GraphCanvas() {
   const handleAutoResizeGroups = useCallback(() => {
     const resized = autoResizeGroups(getNodes() as FlowNode[])
     setNodes(resized)
-  }, [getNodes, setNodes])
+    // Используем requestAnimationFrame, чтобы React Flow успел подхватить новые размеры
+    requestAnimationFrame(() => {
+      fitView({
+        padding: 0.2, // Отступ от краев экрана (20%)
+        duration: 400 // Плавная анимация в мс
+      });
+    });
+  }, [getNodes, setNodes, fitView])
 
   const handleAutoLayout = useCallback(async () => {
     const { nodes: layoutedNodes } = await layoutGraph(getNodes() as FlowNode[], getEdges())
@@ -174,7 +181,7 @@ function GraphCanvas() {
             <LayoutTemplate size={18} />
           </Button>
           <Button variant="outline" size="icon" onClick={handleAutoLayout} title="Auto Layout">
-            <LayoutGrid size={18} />
+            <Network size={18} />
           </Button>
           {/* ВЕРНУЛИ КНОПКУ СОХРАНИТЬ */}
           <Button
