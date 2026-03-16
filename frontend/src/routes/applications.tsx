@@ -29,7 +29,6 @@ const fetchFlowData = async (): Promise<{
         id: "group-2",
         type: "group",
         position: { x: 750, y: 200 },
-
         style: {
           width: 500,
           height: 350,
@@ -40,10 +39,22 @@ const fetchFlowData = async (): Promise<{
         data: { label: "Группа: Инфраструктура" },
       },
       {
+        id: "group-3",
+        type: "group",
+        position: { x: 800, y: 500 },
+        style: {
+          width: 500,
+          height: 350,
+          background: "rgba(16,185,129,0.08)",
+          border: "1px solid rgba(16,185,129,0.4)",
+          borderRadius: 12,
+        },
+        data: { label: "Группа: Инфраструктура 2" },
+      },
+      {
         id: "1",
         type: "application",
         parentId: "group-1",
-        extent: "parent",
         position: { x: 100, y: 100 },
         style: { width: 300 },
         data: {
@@ -59,7 +70,6 @@ const fetchFlowData = async (): Promise<{
         id: "2",
         type: "application",
         parentId: "group-2",
-        extent: "parent",
         position: { x: 200, y: 200 },
         style: { width: 300 },
         data: {
@@ -75,7 +85,21 @@ const fetchFlowData = async (): Promise<{
         id: "3",
         type: "application",
         parentId: "group-2",
-        extent: "parent",
+        position: { x: 10, y: 10 },
+        style: { width: 300 },
+        data: {
+          label: "АРМ РРМ",
+          labelDesc: "Локальная система для работы с данными скважин",
+          systemStatus: "ЛИС",
+          budgetCategory: "D",
+          mainPlatform: "SharePoint",
+          appId: "APP-12959",
+        },
+      },
+      {
+        id: "4",
+        type: "application",
+        parentId: "group-3",
         position: { x: 10, y: 10 },
         style: { width: 300 },
         data: {

@@ -19,18 +19,22 @@ import "@xyflow/react/dist/style.css"
 import { Link, useRouterState } from "@tanstack/react-router"
 import { Route } from "@/routes/applications"
 import { ThemeProvider, useTheme } from "next-themes"
-import { Home, Sun, Moon, Maximize2, Minimize2, LayoutGrid, Save, LoaderCircle } from "lucide-react"
+import { Home, Sun, Moon, Maximize2, Minimize2, LayoutGrid, Save, LoaderCircle, LayoutTemplate, Network } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { useStore } from "@/store/store" // Используем ваш стор
+
 import { ApplicationNode } from "@/components/applications/NodeApp"
+import { GroupNode } from "@/components/applications/NodeGroup"
+
 import FloatingEdge from "@/components/applications/EdgeFloating"
 import FloatingConnectionLine from "@/components/applications/EdgeFloatingConnectionLine"
 import { FilterPanel } from "@/components/applications/NodeFilterPanel"
 import type { FlowNode } from "@/components/applications/nodeTypes"
 import { layoutGraph } from "@/components/applications/nodeLayoutGraph"
+import { autoResizeGroups } from "@/components/applications/nodeAutoResizeGroups"
 
-const nodeTypes = { application: ApplicationNode }
+const nodeTypes = { application: ApplicationNode, group: GroupNode, }
 const edgeTypes = { floating: FloatingEdge }
 
 function GraphCanvas() {
@@ -97,6 +101,11 @@ function GraphCanvas() {
 
   }, [query, status, budget, initialNodes, initialEdges, setNodes, setEdges])
 
+  const handleAutoResizeGroups = useCallback(() => {
+    const resized = autoResizeGroups(getNodes() as FlowNode[])
+    setNodes(resized)
+  }, [getNodes, setNodes])
+
   const handleAutoLayout = useCallback(async () => {
     const { nodes: layoutedNodes } = await layoutGraph(getNodes() as FlowNode[], getEdges())
     setNodes(layoutedNodes)
@@ -161,6 +170,9 @@ function GraphCanvas() {
         <Background variant={BackgroundVariant.Dots} gap={20} />
 
         <Panel position="top-right" className="flex gap-2">
+          <Button variant="outline" size="icon" onClick={handleAutoResizeGroups} title="Упорядочить группы">
+            <LayoutTemplate size={18} />
+          </Button>
           <Button variant="outline" size="icon" onClick={handleAutoLayout} title="Auto Layout">
             <LayoutGrid size={18} />
           </Button>
