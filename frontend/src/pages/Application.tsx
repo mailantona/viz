@@ -50,9 +50,8 @@ function GraphCanvas() {
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([])
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
 
-  // 1. Создаем функцию-хелпер для фитвью
+  // 1. Оптимизированный хелпер fitView
   const performFitView = useCallback(() => {
-    // requestAnimationFrame выполнится сразу, как только браузер будет готов к отрисовке
     requestAnimationFrame(() => {
       fitView({
         duration: 400,
@@ -61,6 +60,7 @@ function GraphCanvas() {
       });
     });
   }, [fitView]);
+
   // Единая логика фильтрации и синхронизации данных
   useEffect(() => {
     const appVisibility = new Map<string, boolean>()
