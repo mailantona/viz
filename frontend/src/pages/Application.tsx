@@ -40,6 +40,7 @@ const edgeTypes = { floating: FloatingEdge }
 function GraphCanvas() {
   const { nodes: initialNodes, edges: initialEdges } = Route.useLoaderData()
   const { query, status, budget } = Route.useSearch()
+  const isFiltered = !!(query || status || budget)
   const { theme, setTheme, resolvedTheme } = useTheme()
   const { getNodes, getEdges, fitView } = useReactFlow()
 
@@ -64,10 +65,13 @@ function GraphCanvas() {
   // Единая логика фильтрации и синхронизации данных
   useEffect(() => {
     const appVisibility = new Map<string, boolean>()
+    const currentNodes = getNodes()
 
     // 1. Фильтруем приложения
     const processedNodes = initialNodes.map((node) => {
-      if (node.type === "group") return node
+      const existingNode = (currentNodes.find((n) => n.id === node.id) as FlowNode) || node
+
+      if (node.type === "group") return existingNode
 
       const data = node.data as any
       const matchesQuery = !query || data.label?.toLowerCase().includes(query.toLowerCase())
@@ -78,9 +82,9 @@ function GraphCanvas() {
       appVisibility.set(node.id, isVisible)
 
       return {
-        ...node,
+        ...existingNode,
         hidden: !isVisible,
-        data: { ...node.data } // Прокидываем состояние стора в данные ноды
+        data: { ...existingNode.data } // Прокидываем состояние стора в данные ноды
       }
     })
 
@@ -95,11 +99,11 @@ function GraphCanvas() {
       return node
     })
 
-    setNodes(finalNodes)
+    setNodes(finalNodes as FlowNode[])
     setEdges(initialEdges.filter(e => appVisibility.get(e.source) && appVisibility.get(e.target)))
     performFitView();
 
-  }, [query, status, budget, initialNodes, initialEdges, setNodes, setEdges])
+  }, [query, status, budget, initialNodes, initialEdges, setNodes, setEdges, getNodes])
 
   const handleAutoResizeGroups = useCallback(() => {
     const resized = autoResizeGroups(getNodes() as FlowNode[])
@@ -188,9 +192,10 @@ function GraphCanvas() {
             variant="outline"
             size="icon"
             onClick={handleSave}
-            title="Save graph"
+            disabled={isFiltered}
+            title={isFiltered ? "Сохранение недоступно при включенных фильтрах" : "Save graph"}
           >
-            <Save size={18} />
+            <Save size={18} className={isFiltered ? "opacity-30" : ""} />
           </Button>
           <Button variant={showResizer ? "default" : "outline"} size="icon" onClick={toggleResizer}>
             {showResizer ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
