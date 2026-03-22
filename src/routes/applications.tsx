@@ -111,6 +111,36 @@ const fetchFlowData = async (): Promise<{
           appId: "APP-12959",
         },
       },
+      {
+        id: "5",
+        type: "application",
+        parentId: "group-1",
+        position: { x: 100, y: 100 },
+        style: { width: 300 },
+        data: {
+          label: "ОИС Плюс",
+          labelDesc: "Учет уровня запасов в резервуарах",
+          systemStatus: "ЛИС",
+          budgetCategory: "D",
+          mainPlatform: "SharePoint",
+          appId: "APP-12960",
+        },
+      },
+      {
+        id: "6",
+        type: "application",
+        parentId: "group-1",
+        position: { x: 100, y: 100 },
+        style: { width: 300 },
+        data: {
+          label: "СУП",
+          labelDesc: "Система управления производством",
+          systemStatus: "КИС",
+          budgetCategory: "N",
+          mainPlatform: "1C",
+          appId: "APP-12961",
+        },
+      },
     ],
     edges: [
       {
